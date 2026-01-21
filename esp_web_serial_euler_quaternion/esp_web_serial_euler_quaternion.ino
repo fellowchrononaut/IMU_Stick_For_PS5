@@ -34,9 +34,15 @@ unsigned char gyroCalibStatus = 0;      //Variable to hold the calibration statu
 unsigned char sysCalibStatus = 0;       //Variable to hold the calibration status of the System (BNO055's MCU)
  
 unsigned long lastTime = 0;
+#define DAC_X 25
+#define DAC_Y 26
+float baseline_pitch = 0.0; // Baseline pitch (neutral)
+float baseline_roll = 0.0; // Baseline roll (neutral)
+bool is_calibrated = false;
  
 /* Set the delay between fresh samples */
 #define BNO055_SAMPLERATE_DELAY_MS (100)
+#define MAX_ANGLE 45.0
  
 void setup() //This code is executed once
 {
@@ -53,6 +59,23 @@ void setup() //This code is executed once
  
   //Initialize the Serial Port to view information on the Serial Monitor
   Serial.begin(115200);
+  dacWrite(DAC_X, 128);
+  dacWrite(DAC_Y, 128);
+  Serial.println("IMU to DAC Initialized. Keep foot/sensor still for initial calibration...");
+
+}
+
+int mapAngleToDAC(float current, float base, float max_deflection) {
+  float delta = current - base;
+  // Clamp delta to max_angle range
+  if (delta > max_deflection) delta = max_deflection;
+  if (delta < -max_deflection) delta = -max_deflection;
+  
+  // Map -max_deflection..max_deflection to 0..255
+  // Neutral (0 delta) becomes 127/128
+  float normalized = (delta / max_deflection); // -1.0 to 1.0
+  int dac_val = (int)((normalized + 1.0) * 127.5);
+  return dac_val;
 }
  
 void loop() //This code is looped forever
@@ -62,6 +85,36 @@ void loop() //This code is looped forever
     lastTime = millis();
  
     bno055_read_euler_hrp(&myEulerData);            //Update Euler data into the structure
+
+    float pitch = (float)myEulerData.p / 16.00;
+    float roll  = (float)myEulerData.r / 16.00;
+    float head  = (float)myEulerData.h / 16.00;
+
+    if (!is_calibrated && millis() > 2000) {
+      baseline_pitch = pitch;
+      baseline_roll = roll;
+      is_calibrated = true;
+      Serial.println("Neutral stance captured!");
+    }
+
+    if (is_calibrated) {
+      // Map Roll to X-axis and Pitch to Y-axis
+      int dac_x_val = mapAngleToDAC(roll, baseline_roll, MAX_ANGLE);
+      int dac_y_val = mapAngleToDAC(pitch, baseline_pitch, MAX_ANGLE);
+
+      // Output to PS5 Access Controller
+      dacWrite(DAC_X, dac_x_val);
+      dacWrite(DAC_Y, dac_y_val);
+
+      Serial.print("Orientation: ");
+      Serial.print(head); Serial.print(", ");
+      Serial.print(pitch); Serial.print(", ");
+      Serial.print(roll);
+      Serial.print(" | DAC X: "); Serial.print(dac_x_val);
+      Serial.print(" Y: "); Serial.println(dac_y_val);
+    }
+
+
     bno055_read_quaternion_wxyz(&myQuatData);  // Update quaternion data
 
  
