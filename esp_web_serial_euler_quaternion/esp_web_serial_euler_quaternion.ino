@@ -38,11 +38,12 @@ unsigned long lastTime = 0;
 #define DAC_Y 26
 float baseline_pitch = 0.0; // Baseline pitch (neutral)
 float baseline_roll = 0.0; // Baseline roll (neutral)
+float baseline_yaw = 0.0; // Baseline yaw (neutral)
 bool is_calibrated = false;
  
 /* Set the delay between fresh samples */
 #define BNO055_SAMPLERATE_DELAY_MS (100)
-#define MAX_ANGLE 45.0
+#define MAX_ANGLE 25.0
  
 void setup() //This code is executed once
 {
@@ -88,11 +89,12 @@ void loop() //This code is looped forever
 
     float pitch = (float)myEulerData.p / 16.00;
     float roll  = (float)myEulerData.r / 16.00;
-    float head  = (float)myEulerData.h / 16.00;
+    float yaw  = (float)myEulerData.h / 16.00;
 
     if (!is_calibrated && millis() > 2000) {
       baseline_pitch = pitch;
       baseline_roll = roll;
+      baseline_yaw = yaw;
       is_calibrated = true;
       Serial.println("Neutral stance captured!");
     }
@@ -100,14 +102,14 @@ void loop() //This code is looped forever
     if (is_calibrated) {
       // Map Roll to X-axis and Pitch to Y-axis
       int dac_x_val = mapAngleToDAC(roll, baseline_roll, MAX_ANGLE);
-      int dac_y_val = mapAngleToDAC(pitch, baseline_pitch, MAX_ANGLE);
+      int dac_y_val = mapAngleToDAC(yaw, baseline_yaw, MAX_ANGLE);
 
       // Output to PS5 Access Controller
       dacWrite(DAC_X, dac_x_val);
       dacWrite(DAC_Y, dac_y_val);
 
       Serial.print("Orientation: ");
-      Serial.print(head); Serial.print(", ");
+      Serial.print(yaw); Serial.print(", ");
       Serial.print(pitch); Serial.print(", ");
       Serial.print(roll);
       Serial.print(" | DAC X: "); Serial.print(dac_x_val);
@@ -118,7 +120,7 @@ void loop() //This code is looped forever
     bno055_read_quaternion_wxyz(&myQuatData);  // Update quaternion data
 
  
-    /* The WebSerial 3D Model Viewer expects data as heading, pitch, roll */
+    /* The WebSerial 3D Model Viewer expects data as yaw , pitch, roll */
     Serial.print(F("Orientation: "));
     Serial.print(360-(float(myEulerData.h) / 16.00));
     Serial.print(F(", "));
