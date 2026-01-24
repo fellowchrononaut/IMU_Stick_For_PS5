@@ -155,7 +155,7 @@ class IMUControllerApp:
             self.pitch_label.config(text=f"Pitch:   {self.current_pitch:7.2f}°")
             self.roll_label.config(text=f"Roll:    {self.current_roll:7.2f}°")
             if self.current_heading is not None:
-                self.heading_label.config(text=f"Heading:{self.current_heading:7.2f}°")
+                self.heading_label.config(text=f"Yaw:{self.current_heading:7.2f}°")
 
             # If no baseline yet, hint to user
             if self.baseline_pitch is None:
