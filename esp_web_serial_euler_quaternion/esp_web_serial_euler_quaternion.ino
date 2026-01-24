@@ -66,8 +66,12 @@ void setup() //This code is executed once
 
 }
 
-int mapAngleToDAC(float current, float base, float max_deflection) {
+int mapAngleToDAC(float current, float base, float max_deflection, bool isHeading = false) {
   float delta = current - base;
+  if (isHeading) {
+    if (delta > 180.0) delta -= 360.0;
+    else if (delta < -180.0) delta += 360.0;
+  }
   // Clamp delta to max_angle range
   if (delta > max_deflection) delta = max_deflection;
   if (delta < -max_deflection) delta = -max_deflection;
@@ -101,8 +105,8 @@ void loop() //This code is looped forever
 
     if (is_calibrated) {
       // Map Roll to X-axis and Pitch to Y-axis
-      int dac_x_val = mapAngleToDAC(roll, baseline_roll, MAX_ANGLE);
-      int dac_y_val = mapAngleToDAC(heading, baseline_heading, MAX_ANGLE);
+      int dac_x_val = mapAngleToDAC(roll, baseline_roll, MAX_ANGLE, false);
+      int dac_y_val = mapAngleToDAC(heading, baseline_heading, MAX_ANGLE, true);
 
       // Output to PS5 Access Controller
       dacWrite(DAC_X, dac_x_val);
