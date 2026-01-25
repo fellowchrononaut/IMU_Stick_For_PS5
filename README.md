@@ -21,11 +21,12 @@ Useful Resources :
 - https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/22060b.pdf
 
 Prototype Circuit :
+
 Note:
 There are 2 output TRRS connectors
 1. Output directly from Voltage Divider might drop with the 1.8v PS5 Access Controller Vdd load
 2. Output from op-amp (LM358P) should theoretically maintain voltage even with the PS5 Access Controller Load (1.8v Vdd)
 
 <p align='center'>
-    <img src="./circuit.png" alt="drawing" width="800"/>
+    <img src="./circuit_new.png" alt="drawing" width="800"/>
 </p>
