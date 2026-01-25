@@ -30,3 +30,7 @@ There are 2 output TRRS connectors
 <p align='center'>
     <img src="./circuit_new.png" alt="drawing" width="800"/>
 </p>
+
+<p align='center'>
+    <img src="./Prototype-Breadboard.jpg" alt="drawing" width="800"/>
+</p>
