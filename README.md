@@ -27,6 +27,12 @@ There are 2 output TRRS connectors
 1. Output directly from Voltage Divider might drop with the 1.8v PS5 Access Controller Vdd load
 2. Output from op-amp (LM358P) should theoretically maintain voltage even with the PS5 Access Controller Load (1.8v Vdd)
 
+TODO:
+
+- Test on the PS5 Access controller
+- Use the Digipot for smoother control
+- Design casing and strap for placement on foot
+
 <p align='center'>
     <img src="./circuit_new.png" alt="drawing" width="800"/>
 </p>
@@ -35,3 +41,8 @@ There are 2 output TRRS connectors
 <p align='center'>
     <img src="./Prototype-Breadboard.jpg" alt="drawing" width="800"/>
 </p>
+
+<p align='center'>
+    <img src="./Fritzing/PrototypeV1_bb.png" alt="drawing" width="800"/>
+</p>
+
