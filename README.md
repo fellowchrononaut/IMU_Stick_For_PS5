@@ -19,6 +19,7 @@ Useful Resources :
 - https://www.playstation.com/content/dam/global_pdc/en/corporate/support/manuals/accessories/ps5-accessories/access-controller/access-docs/Access%20Controller%20for%20PlayStation%205%20Expansion%20Port%20Specifications.pdf
 - https://www.youtube.com/watch?v=6_bBL7czNOw&t=793s
 - https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/22060b.pdf
+- https://www.ti.com/lit/ds/symlink/lm358.pdf
 
 Prototype Circuit :
 
