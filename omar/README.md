@@ -27,7 +27,21 @@ To develop a script and the hardware necessary to test the link between a microc
 
 ### Wiring
 
-MCP4251 PinLabelConnection PointWire Color (Rec.)Description1CSGP5OrangeSPI Chip Select2SCKGP2YellowSPI Clock3SDIGP3BlueSPI Data Input4VSSGNDBlackCommon Ground5P1BGNDBlackPot 1 Low Side6P1WGP26PurplePot 1 Wiper (Left Stick)7P1A1.8V RefRedPot 1 High Side (Divider Node X)8P0BGNDBlackPot 0 Low Side9P0WGP27GreenPot 0 Wiper (Right Stick)10P0A1.8V RefRedPot 0 High Side (Divider Node X)11WP3.3VRedWrite Protect (Tie High to Disable)12SHDN3.3VRedShutdown (Tie High for Normal Ops)13SDON/C-SPI Data Out (Not used for 4251)14VDD3.3VRedChip Logic Power
+MCP4251 Pin,Label,Connection Point,Wire Color (Rec.),Description
+1,CS,GP5,Orange,SPI Chip Select
+2,SCK,GP2,Yellow,SPI Clock
+3,SDI,GP3,Blue,SPI Data Input
+4,VSS,GND,Black,Common Ground
+5,P1B,GND,Black,Pot 1 Low Side
+6,P1W,GP26,Purple,Pot 1 Wiper (Left Stick)
+7,P1A,1.8V Ref,Red,Pot 1 High Side (Divider Node X)
+8,P0B,GND,Black,Pot 0 Low Side
+9,P0W,GP27,Green,Pot 0 Wiper (Right Stick)
+10,P0A,1.8V Ref,Red,Pot 0 High Side (Divider Node X)
+11,WP,3.3V,Red,Write Protect (Tie High to Disable)
+12,SHDN,3.3V,Red,Shutdown (Tie High for Normal Ops)
+13,SDO,N/C,-,SPI Data Out (Not used for 4251)
+14,VDD,3.3V,Red,Chip Logic Power
 
 ![Wiring](https://github.com/fellowchrononaut/IMU_Stick_For_PS5/blob/main/omar/breadboard_wiring.png)
 
