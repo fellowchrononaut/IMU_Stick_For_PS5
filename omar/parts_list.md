@@ -1,1 +1,13 @@
-# Parts List
+# Information
+
+## Parts List
+
+- [Knockoff Waveshare RP2040-Zero](https://fr.aliexpress.com/item/1005007650325892.html?spm=a2g0o.order_list.order_list_main.52.76645e5bInMVJV&gatewayAdapt=glo2fra)
+- [MCP4251-103E/P 8bit, dual SPI digital potentiometer with volatile memory](https://fr.farnell.com/en-FR/microchip/mcp4251-103e-p/ic-dpot-5-5v-10kr-14-pdip-spi/dp/1578442)
+- [3.5mm Male To 3.5 mm Male TRRS Aux Cable](https://fr.aliexpress.com/item/1005009181119614.html?spm=a2g0o.order_list.order_list_main.5.76645e5bInMVJV&gatewayAdapt=glo2fra)
+- [3.5mm Female Jack to Bare Wire Open End TRRS](https://fr.aliexpress.com/item/1005008510930978.html?spm=a2g0o.order_list.order_list_main.11.76645e5bInMVJV&gatewayAdapt=glo2fra)
+- [USB-A to USB-C Cable](https://fr.aliexpress.com/item/1005008494569058.html?spm=a2g0o.order_list.order_list_main.62.76645e5bInMVJV&gatewayAdapt=glo2fra)
+- [Starter Kit For Arduino](https://fr.aliexpress.com/item/1005006480276775.html?spm=a2g0o.order_list.order_list_main.177.76645e5bInMVJV&gatewayAdapt=glo2fra)
+
+## Useful Resources
+
