@@ -56,11 +56,11 @@ This program allows the user to send X/Y joystick commands to the PS5 Access Con
 #include <SPI.h>
 
 const int CS_PIN = 5;
-const byte POT_LEFT  = 0x10; // Wiper 1 (Left)
-const byte POT_RIGHT = 0x00; // Wiper 0 (Right)
+const byte POT_LEFT  = 0x10; // Wiper 1 (Left/Y-axis)
+const byte POT_RIGHT = 0x00; // Wiper 0 (Right/X-axis)
 
-const int ADC_LEFT  = 26;    // Monitor for wiper 1 (left)
-const int ADC_RIGHT = 27;    // Monitor for wiper 2 (right)
+const int ADC_LEFT  = 26;    // Monitor for wiper 1 (left/Y-axis)
+const int ADC_RIGHT = 27;    // Monitor for wiper 0 (right/X-axis)
 
 void setup() {
 
