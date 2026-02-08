@@ -15,7 +15,7 @@ To develop a script and the hardware necessary to test the link between a microc
 - [PS5 Access Controller](https://direct.playstation.com/fr-fr/buy-accessories/access-controller?smcid=pdc:fr-fr:web-pdc-accessories-access-controller:subnav:null:)
 - [PS5](https://direct.playstation.com/fr-fr/buy-consoles/certified-refurbished-playstation5-digital-edition-console)
 
-Total Cost (Excluding PS5 & Controller) : 
+Total Cost (Excluding PS5 & Controller) : 40 euros
 
 ### Useful Resources
 
