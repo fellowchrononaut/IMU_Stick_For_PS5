@@ -21,6 +21,7 @@ To develop a script and the hardware necessary to test the link between a microc
 - [Digital potentiometers and Arduino](https://www.youtube.com/watch?v=AqeGskH0usY&t=781s)
 - [Waveshare RP2040-Zero Fritzing component](https://forum.fritzing.org/t/part-request-waveshare-rp2040-zero/16705)
 - [How to download Fritzing for free](https://gist.github.com/RyanLua/fc2457d87641bb39754278b01a647526)
+- [SPI wikipedia overview](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface#See_also)
 - Access™ Controller for PlayStation®5 Expansion Port Specifications PDF
 - Microchip MCP413X/415X/423X/425X Datasheet PDF
 
