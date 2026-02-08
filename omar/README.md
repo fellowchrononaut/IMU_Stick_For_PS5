@@ -1,9 +1,8 @@
 # README
 
-## Objectives
+## Objective
 
-1. Learn how to interface a microcontroller and digital potentiometer
-2. Develop a program to test link between microcontroller and PS5 expansion port (without additional sensors)
+To develop a script and the hardware necessary to test the link between a microcontroller and the PS5 expansion port.
 
 ### Parts List
 
@@ -28,7 +27,9 @@
 ### Wiring
 ![Wiring](https://github.com/fellowchrononaut/IMU_Stick_For_PS5/blob/main/omar/breadboard_wiring.png)
 
-### Code Walk-through
+### Script Walkthrough
+
+
 
 
 
