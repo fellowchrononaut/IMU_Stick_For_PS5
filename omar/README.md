@@ -2,7 +2,7 @@
 
 ### Objective
 
-To develop a script and the hardware necessary to test the link between a microcontroller and the PS5 expansion port.
+To develop a script and the hardware necessary to test the link between a microcontroller and the PS5 expansion ports.
 
 ### Parts List
 
