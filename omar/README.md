@@ -31,7 +31,7 @@ Total Cost (Excluding PS5 & Controller) : 40 euros
 
 ### Wiring
 
-### MCP4251 Pin Allocation
+MCP4251 Pin Allocation
 
 | MCP4251 Pin | Label | Connection Point | Description |
 | :--- | :--- | :--- | :--- |
