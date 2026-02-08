@@ -39,7 +39,7 @@ This program allows the user to send X/Y joystick commands to the PS5 Access Con
 2. Connect 3.5 mm Male jack to PS5 Access Controller expansion port
 3. Verify voltage drop between the sleeve and ring 2 is 1.8V
 4. Turn OFF PS5 Access Controller
-5. Wire 3.5 mm jack to breadboard
+5. Wire 3.5 mm jack to breadboard according to wiring diagram
 6. Turn ON microcontroller and PS5 Access Controller
 7. Send X/Y joystick commands from Arduino IDE serial port to PS5 Access Controller
 
