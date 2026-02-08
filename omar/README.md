@@ -29,6 +29,8 @@ To develop a script and the hardware necessary to test the link between a microc
 
 ### Script Walkthrough
 
+This script allows the user to send X/Y joystick commands to the PS5 Access Controller via the serial port by modifying the wiper positions of the corresponding potentiometers.
+
 
 
 ### Test Procedure
