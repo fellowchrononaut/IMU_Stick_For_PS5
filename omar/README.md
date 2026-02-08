@@ -31,19 +31,19 @@ To develop a script and the hardware necessary to test the link between a microc
 
 | MCP4251 Pin | Label | Connection Point | Description |
 | :--- | :--- | :--- | :--- |
-| **1** | CS | **GP5 ()** | SPI Chip Select |
-| **2** | SCK | **GP2 ()** | SPI Clock |
-| **3** | SDI | **GP3 ()** | SPI Data Input |
+| **1** | CS | **GP5 (SPI CS)** | SPI Chip Select |
+| **2** | SCK | **GP2 (SPI SCK)** | SPI Clock |
+| **3** | SDI | **GP3 (SPI TX)** | SPI Data Input |
 | **4** | Vss | **GND** | Common Ground |
 | **5** | P1B | **GND** | Pot 1 Low Side |
-| **6** | P1W | **TIP (Y-AXIS) + GP26 (ADC)** | **Pot 1 Wiper (Left Stick)** |
-| **7** | P1A | **1.8V Ref** | Pot 1 High Side (Divider Node X) |
-| **8** | P0A | **1.8V Ref** | Pot 0 Low Side |
-| **9** | P0W | **RING 1 (X-AXIS) + GP27 (ADC)** | **Pot 0 Wiper (Right Stick)** |
-| **10** | P0B | **GND** | Pot 0 High Side (Divider Node X) |
+| **6** | P1W | **TIP (Y-AXIS) + GP26 (ADC)** | Pot 1 Wiper |
+| **7** | P1A | **Sleeve (1.8V Ref)** | Pot 1 High Side |
+| **8** | P0A | **Sleeve (1.8V Ref)** | Pot 0 High Side |
+| **9** | P0W | **RING 1 (X-AXIS) + GP27 (ADC)** | Pot 0 Wiper |
+| **10** | P0B | **GND** | Pot 0 Low Side |
 | **11** | WP | **3.3V** | Write Protect (Disabled) |
-| **12** | SHDN | **3.3V** | Normal Operation Mode |
-| **13** | SDO | N/C | Not Connected |
+| **12** | SHDN | **3.3V** | Shutdown (Disabled) |
+| **13** | SDO | N/A | Not Used |
 | **14** | VDD | **3.3V** | Chip Logic Power |
 
 ![Wiring](https://github.com/fellowchrononaut/IMU_Stick_For_PS5/blob/main/omar/breadboard_wiring.png)
