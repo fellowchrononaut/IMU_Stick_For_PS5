@@ -1,4 +1,6 @@
-# Project Overview
+# README
+
+The first objective of this sidequest is to figure out how to interface a microcontroller to the PS5 expansion port using a digital potentiometer. 
 
 ### Parts List
 
