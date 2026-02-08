@@ -27,9 +27,9 @@ To develop a script and the hardware necessary to test the link between a microc
 ### Wiring
 ![Wiring](https://github.com/fellowchrononaut/IMU_Stick_For_PS5/blob/main/omar/breadboard_wiring.png)
 
-### Script Walkthrough
+### Code Walkthrough
 
-This script allows the user to send X/Y joystick commands to the PS5 Access Controller via the serial port by modifying the wiper positions of the corresponding potentiometers.
+This program allows the user to send X/Y joystick commands to the PS5 Access Controller by modifying the wiper positions of the corresponding potentiometers via the serial port.
 
 
 
