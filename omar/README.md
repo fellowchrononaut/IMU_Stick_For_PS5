@@ -1,6 +1,9 @@
 # README
 
-The objective of this sidequest is to figure out how to interface a microcontroller to the PS5 expansion port using a digital potentiometer and the Arduino IDE. 
+## Objectives
+
+1. Learn how to interface a microcontroller and digital potentiometer
+2. Develop a program to test link between microcontroller and PS5 expansion port (without additional sensors)
 
 ### Parts List
 
