@@ -44,7 +44,7 @@ To develop a script and the hardware necessary to test the link between a microc
 | **11** | WP | **3.3V** | Write Protect (Disabled) |
 | **12** | SHDN | **3.3V** | Shutdown (Disabled) |
 | **13** | SDO | N/A | Not Used |
-| **14** | VDD | **3.3V** | Chip Logic Power |
+| **14** | Vdd | **3.3V** | Chip Logic Power |
 
 ![Wiring](https://github.com/fellowchrononaut/IMU_Stick_For_PS5/blob/main/omar/breadboard_wiring.png)
 
