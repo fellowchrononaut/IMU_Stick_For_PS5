@@ -11,3 +11,11 @@
 
 ## Useful Resources
 
+- [Waveshare RP2040-Zero Pinout](https://www.waveshare.com/rp2040-zero.htm)
+- [How to configure Waveshare RP2040-Zero in Arduino IDE](https://www.waveshare.com/wiki/RP2040-Zero)
+- [How to create a joystick input for PS5 access controller](https://www.youtube.com/watch?v=6_bBL7czNOw)
+- [Digital potentiometers and Arduino](https://www.youtube.com/watch?v=AqeGskH0usY&t=781s)
+- [Waveshare RP2040-Zero Fritzing component](https://forum.fritzing.org/t/part-request-waveshare-rp2040-zero/16705)
+- [How to download Fritzing for free](https://gist.github.com/RyanLua/fc2457d87641bb39754278b01a647526)
+- Access™ Controller for PlayStation®5 Expansion Port Specifications PDF
+- Microchip MCP413X/415X/423X/425X Datasheet PDF
