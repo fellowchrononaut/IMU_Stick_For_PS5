@@ -26,6 +26,9 @@ To develop a script and the hardware necessary to test the link between a microc
 - Microchip MCP413X/415X/423X/425X Datasheet PDF
 
 ### Wiring
+
+MCP4251 PinLabelConnection PointWire Color (Rec.)Description1CSGP5OrangeSPI Chip Select2SCKGP2YellowSPI Clock3SDIGP3BlueSPI Data Input4VSSGNDBlackCommon Ground5P1BGNDBlackPot 1 Low Side6P1WGP26PurplePot 1 Wiper (Left Stick)7P1A1.8V RefRedPot 1 High Side (Divider Node X)8P0BGNDBlackPot 0 Low Side9P0WGP27GreenPot 0 Wiper (Right Stick)10P0A1.8V RefRedPot 0 High Side (Divider Node X)11WP3.3VRedWrite Protect (Tie High to Disable)12SHDN3.3VRedShutdown (Tie High for Normal Ops)13SDON/C-SPI Data Out (Not used for 4251)14VDD3.3VRedChip Logic Power
+
 ![Wiring](https://github.com/fellowchrononaut/IMU_Stick_For_PS5/blob/main/omar/breadboard_wiring.png)
 
 ### Code Walkthrough
