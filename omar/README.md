@@ -1,6 +1,6 @@
 # README
 
-The first objective of this sidequest is to figure out how to interface a microcontroller to the PS5 expansion port using a digital potentiometer. 
+The objective of this sidequest is to figure out how to interface a microcontroller to the PS5 expansion port using a digital potentiometer and the Arduino IDE. 
 
 ### Parts List
 
@@ -24,6 +24,8 @@ The first objective of this sidequest is to figure out how to interface a microc
 
 ### Wiring
 ![Wiring](https://github.com/fellowchrononaut/IMU_Stick_For_PS5/blob/main/omar/breadboard_wiring.png)
+
+### Code Walk-through
 
 
 
