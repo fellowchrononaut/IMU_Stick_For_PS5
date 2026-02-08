@@ -12,6 +12,10 @@ To develop a script and the hardware necessary to test the link between a microc
 - [3.5mm Female Jack to Bare Wire Open End TRRS](https://fr.aliexpress.com/item/1005008510930978.html?spm=a2g0o.order_list.order_list_main.11.76645e5bInMVJV&gatewayAdapt=glo2fra)
 - [USB-A to USB-C Cable](https://fr.aliexpress.com/item/1005008494569058.html?spm=a2g0o.order_list.order_list_main.62.76645e5bInMVJV&gatewayAdapt=glo2fra)
 - [Starter Kit For Arduino](https://fr.aliexpress.com/item/1005006480276775.html?spm=a2g0o.order_list.order_list_main.177.76645e5bInMVJV&gatewayAdapt=glo2fra)
+- [PS5 Access Controller](https://direct.playstation.com/fr-fr/buy-accessories/access-controller?smcid=pdc:fr-fr:web-pdc-accessories-access-controller:subnav:null:)
+- [PS5](https://direct.playstation.com/fr-fr/buy-consoles/certified-refurbished-playstation5-digital-edition-console)
+
+Total Cost (Excluding PS5 & Controller) : 
 
 ### Useful Resources
 
