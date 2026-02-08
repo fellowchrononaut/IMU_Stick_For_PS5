@@ -1,6 +1,6 @@
-# Overview
+# Project Overview
 
-## Parts List
+### Parts List
 
 - [Knockoff Waveshare RP2040-Zero](https://fr.aliexpress.com/item/1005007650325892.html?spm=a2g0o.order_list.order_list_main.52.76645e5bInMVJV&gatewayAdapt=glo2fra)
 - [MCP4251-103E/P 8bit, dual SPI digital potentiometer with volatile memory](https://fr.farnell.com/en-FR/microchip/mcp4251-103e-p/ic-dpot-5-5v-10kr-14-pdip-spi/dp/1578442)
@@ -9,7 +9,7 @@
 - [USB-A to USB-C Cable](https://fr.aliexpress.com/item/1005008494569058.html?spm=a2g0o.order_list.order_list_main.62.76645e5bInMVJV&gatewayAdapt=glo2fra)
 - [Starter Kit For Arduino](https://fr.aliexpress.com/item/1005006480276775.html?spm=a2g0o.order_list.order_list_main.177.76645e5bInMVJV&gatewayAdapt=glo2fra)
 
-## Useful Resources
+### Useful Resources
 
 - [Waveshare RP2040-Zero Pinout](https://www.waveshare.com/rp2040-zero.htm)
 - [How to configure Waveshare RP2040-Zero in Arduino IDE](https://www.waveshare.com/wiki/RP2040-Zero)
@@ -20,7 +20,7 @@
 - Access™ Controller for PlayStation®5 Expansion Port Specifications PDF
 - Microchip MCP413X/415X/423X/425X Datasheet PDF
 
-## Wiring
+### Wiring
 ![Wiring](https://github.com/fellowchrononaut/IMU_Stick_For_PS5/blob/main/omar/breadboard_wiring.png)
 
 
