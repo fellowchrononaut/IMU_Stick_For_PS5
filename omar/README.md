@@ -31,5 +31,14 @@ To develop a script and the hardware necessary to test the link between a microc
 
 
 
+### Test Procedure
+
+1. Turn ON PS5 Access Controller
+2. Connect 3.5 mm Male jack to PS5 Access Controller expansion port
+3. Verify voltage drop between the sleeve and ring 2 is 1.8V
+4. Turn OFF PS5 Access Controller
+5. Wire 3.5 mm jack to breadboard
+6. Turn ON microcontroller and PS5 Access Controller
+7. Send X/Y joystick commands from Arduino IDE serial port to PS5 Access Controller
 
 
