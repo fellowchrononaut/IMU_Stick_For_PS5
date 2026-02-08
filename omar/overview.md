@@ -1,4 +1,4 @@
-# Information
+# Overview
 
 ## Parts List
 
@@ -19,3 +19,9 @@
 - [How to download Fritzing for free](https://gist.github.com/RyanLua/fc2457d87641bb39754278b01a647526)
 - Access™ Controller for PlayStation®5 Expansion Port Specifications PDF
 - Microchip MCP413X/415X/423X/425X Datasheet PDF
+
+## Wiring
+![Alt text](omar/breadboard_wiring.png)
+
+
+
