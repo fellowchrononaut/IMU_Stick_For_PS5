@@ -21,7 +21,7 @@
 - Microchip MCP413X/415X/423X/425X Datasheet PDF
 
 ## Wiring
-![Alt text](omar/breadboard_wiring.png)
+![Alt text](IMU_Stick_For_PS5/omar/breadboard_wiring.png)
 
 
 
