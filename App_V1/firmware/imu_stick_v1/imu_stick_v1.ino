@@ -1,25 +1,39 @@
 /**
  * IMU Stick V1 firmware
- * - BNO055 over I2C
+ * - BNO055 over I2C (address 0x28, NDOF mode)
  * - Two ESP32 DAC channels driving a PS5 Access Controller stick via op-amp
  * - Configurable axis mapping (source, invert, max angle, deadzone) per channel
  * - Neutral pose calibration
- * - Persistent config in NVS so the device runs standalone once configured
+ * - Multiple named profiles persisted in NVS
+ * - BNO055 sensor calibration offsets persisted in NVS (skip re-cal on boot)
  *
  * Serial protocol (line-based, 115200 baud):
  *   Host -> ESP32:
- *     STATUS                              request current config
- *     SET X.src=heading Y.inv=1 X.max=20  any subset of X/Y fields
+ *     STATUS                              dump current config (CFG line)
+ *     SET X.src=heading Y.inv=1 ...       update any subset of X/Y fields in RAM
  *     NEUTRAL                             capture current pose as baseline (RAM)
- *     SAVE                                persist RAM config to NVS
- *     LOAD                                reload NVS into RAM
+ *     SAVE                                persist current RAM config to active profile
+ *     LOAD                                reload active profile from NVS into RAM
  *     RESET                               restore defaults in RAM (Save to persist)
+ *     LIST_PROFILES                       reply: PROFILES <comma list>
+ *     SELECT_PROFILE <name>               load profile into RAM, set active
+ *     SAVE_PROFILE <name>                 save RAM config as <name>, mark active
+ *     DELETE_PROFILE <name>               remove named profile
+ *     SAVE_BNO_CAL                        snapshot BNO055 cal offsets to NVS
+ *     CLEAR_BNO_CAL                       remove saved BNO055 cal
  *   ESP32 -> host:
- *     READY imu_stick_v1                  printed once on boot
- *     CFG ...                             reply to STATUS
- *     OK ... / ERR ...                    reply to commands
+ *     READY imu_stick_v1                  on boot
+ *     CFG ...                             reply to STATUS; includes profile=, bno_cal_saved=
+ *     PROFILES <name1,name2,...>          reply to LIST_PROFILES (empty -> "PROFILES")
+ *     OK ... / ERR ...                    command replies
  *     D h=.. p=.. r=.. dx=.. dy=.. cal=s,g,a,m baseline_set=0|1
  *                                         streamed at ~10 Hz
+ *
+ * NVS keys (namespace "imuv1"):
+ *   active        active profile name (string, default "default")
+ *   prof_list     comma-separated profile names
+ *   p_<name>      Config blob (per profile)
+ *   bno_cal       22-byte BNO055 calibration offset blob
  */
 
 #include "BNO055_support.h"
@@ -30,6 +44,10 @@
 #define DAC_Y 26                    // Tip on TRRS (stick Y)
 #define BNO055_SAMPLERATE_DELAY_MS 100
 #define CONFIG_MAGIC 0xC0DE
+#define BNO055_I2C_ADDRESS 0x28
+#define BNO055_CAL_REG_START 0x55
+#define BNO055_CAL_BLOB_SIZE 22
+#define PROFILE_NAME_MAX 12
 
 enum AxisSource : uint8_t { SRC_HEADING = 0, SRC_PITCH = 1, SRC_ROLL = 2 };
 
@@ -51,6 +69,8 @@ struct Config {
 };
 
 Config cfg;
+char activeProfile[PROFILE_NAME_MAX + 1] = "default";
+bool bnoCalSaved = false;
 
 struct bno055_t myBNO;
 struct bno055_euler myEulerData;
@@ -60,6 +80,7 @@ unsigned long lastSample = 0;
 String inputLine;
 Preferences prefs;
 
+// ---------------- defaults ----------------
 void loadDefaults() {
   cfg.x = { SRC_HEADING, 0, 25.0f, 0.0f };
   cfg.y = { SRC_ROLL,    0, 25.0f, 0.0f };
@@ -70,26 +91,172 @@ void loadDefaults() {
   cfg.magic = CONFIG_MAGIC;
 }
 
-bool loadFromNVS() {
+// ---------------- profile name validation ----------------
+bool isValidProfileName(const String& name) {
+  if (name.length() == 0 || name.length() > PROFILE_NAME_MAX) return false;
+  for (size_t i = 0; i < name.length(); i++) {
+    char c = name[i];
+    bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '_' || c == '-';
+    if (!ok) return false;
+  }
+  return true;
+}
+
+String profileKey(const char* name) {
+  String k = "p_";
+  k += name;
+  return k;
+}
+
+// ---------------- profile list management ----------------
+String readProfileList() {
+  prefs.begin("imuv1", true);
+  String list = prefs.getString("prof_list", "");
+  prefs.end();
+  return list;
+}
+
+void writeProfileList(const String& list) {
+  prefs.begin("imuv1", false);
+  prefs.putString("prof_list", list);
+  prefs.end();
+}
+
+bool profileExistsInList(const String& list, const char* name) {
+  String needle = name;
+  // search for comma-delimited token
+  int from = 0;
+  while (from <= (int)list.length()) {
+    int comma = list.indexOf(',', from);
+    String token = (comma < 0) ? list.substring(from) : list.substring(from, comma);
+    if (token == needle) return true;
+    if (comma < 0) break;
+    from = comma + 1;
+  }
+  return false;
+}
+
+String addToList(const String& list, const char* name) {
+  if (profileExistsInList(list, name)) return list;
+  if (list.length() == 0) return String(name);
+  return list + "," + name;
+}
+
+String removeFromList(const String& list, const char* name) {
+  String out = "";
+  int from = 0;
+  while (from <= (int)list.length()) {
+    int comma = list.indexOf(',', from);
+    String token = (comma < 0) ? list.substring(from) : list.substring(from, comma);
+    if (token != name && token.length() > 0) {
+      if (out.length() > 0) out += ",";
+      out += token;
+    }
+    if (comma < 0) break;
+    from = comma + 1;
+  }
+  return out;
+}
+
+// ---------------- profile persistence ----------------
+bool loadProfileByName(const char* name) {
   Config tmp;
   prefs.begin("imuv1", true);
-  size_t n = prefs.getBytes("cfg", &tmp, sizeof(tmp));
+  size_t n = prefs.getBytes(profileKey(name).c_str(), &tmp, sizeof(tmp));
   prefs.end();
-  if (n != sizeof(tmp) || tmp.magic != CONFIG_MAGIC) {
-    loadDefaults();
-    return false;
-  }
+  if (n != sizeof(tmp) || tmp.magic != CONFIG_MAGIC) return false;
   cfg = tmp;
   return true;
 }
 
-void saveToNVS() {
+void saveProfileByName(const char* name) {
   cfg.magic = CONFIG_MAGIC;
   prefs.begin("imuv1", false);
-  prefs.putBytes("cfg", &cfg, sizeof(cfg));
+  prefs.putBytes(profileKey(name).c_str(), &cfg, sizeof(cfg));
+  prefs.end();
+  String list = readProfileList();
+  String updated = addToList(list, name);
+  if (updated != list) writeProfileList(updated);
+}
+
+void deleteProfileByName(const char* name) {
+  prefs.begin("imuv1", false);
+  prefs.remove(profileKey(name).c_str());
+  prefs.end();
+  String list = readProfileList();
+  String updated = removeFromList(list, name);
+  if (updated != list) writeProfileList(updated);
+}
+
+// ---------------- active profile pointer ----------------
+void readActiveName(char* out) {
+  prefs.begin("imuv1", true);
+  String s = prefs.getString("active", "default");
+  prefs.end();
+  s.toCharArray(out, PROFILE_NAME_MAX + 1);
+}
+
+void writeActiveName(const char* name) {
+  prefs.begin("imuv1", false);
+  prefs.putString("active", name);
   prefs.end();
 }
 
+// ---------------- BNO055 raw I2C helpers for cal blob ----------------
+bool readBNOCalRegisters(uint8_t* buf) {
+  bno055_set_operation_mode(OPERATION_MODE_CONFIG);
+  delay(25);
+  Wire.beginTransmission(BNO055_I2C_ADDRESS);
+  Wire.write(BNO055_CAL_REG_START);
+  if (Wire.endTransmission(false) != 0) {
+    bno055_set_operation_mode(OPERATION_MODE_NDOF);
+    delay(25);
+    return false;
+  }
+  size_t got = Wire.requestFrom((uint8_t)BNO055_I2C_ADDRESS, (size_t)BNO055_CAL_BLOB_SIZE);
+  for (size_t i = 0; i < BNO055_CAL_BLOB_SIZE; i++) {
+    buf[i] = (i < got && Wire.available()) ? Wire.read() : 0;
+  }
+  bno055_set_operation_mode(OPERATION_MODE_NDOF);
+  delay(25);
+  return got == BNO055_CAL_BLOB_SIZE;
+}
+
+bool writeBNOCalRegisters(const uint8_t* buf) {
+  bno055_set_operation_mode(OPERATION_MODE_CONFIG);
+  delay(25);
+  Wire.beginTransmission(BNO055_I2C_ADDRESS);
+  Wire.write(BNO055_CAL_REG_START);
+  for (size_t i = 0; i < BNO055_CAL_BLOB_SIZE; i++) {
+    Wire.write(buf[i]);
+  }
+  bool ok = (Wire.endTransmission() == 0);
+  bno055_set_operation_mode(OPERATION_MODE_NDOF);
+  delay(25);
+  return ok;
+}
+
+bool loadBNOCalFromNVS(uint8_t* buf) {
+  prefs.begin("imuv1", true);
+  size_t n = prefs.getBytes("bno_cal", buf, BNO055_CAL_BLOB_SIZE);
+  prefs.end();
+  return n == BNO055_CAL_BLOB_SIZE;
+}
+
+void saveBNOCalToNVS(const uint8_t* buf) {
+  prefs.begin("imuv1", false);
+  prefs.putBytes("bno_cal", buf, BNO055_CAL_BLOB_SIZE);
+  prefs.end();
+}
+
+void clearBNOCalFromNVS() {
+  prefs.begin("imuv1", false);
+  prefs.remove("bno_cal");
+  prefs.end();
+}
+
+// ---------------- mapping helpers ----------------
 const char* srcName(uint8_t s) {
   if (s == SRC_HEADING) return "heading";
   if (s == SRC_PITCH)   return "pitch";
@@ -121,13 +288,11 @@ int computeDAC(const AxisConfig& ax, float h, float p, float r) {
   float base = pickBaseline(ax.src);
   float delta = cur - base;
 
-  // heading wrap-around (-180..180)
   if (ax.src == SRC_HEADING) {
     if (delta > 180.0f)  delta -= 360.0f;
     if (delta < -180.0f) delta += 360.0f;
   }
 
-  // dead zone — collapse small motions to zero, shift larger motions in toward zero
   if (fabsf(delta) < ax.dead_zone) {
     delta = 0.0f;
   } else if (delta > 0.0f) {
@@ -150,8 +315,10 @@ int computeDAC(const AxisConfig& ax, float h, float p, float r) {
   return dac;
 }
 
+// ---------------- replies ----------------
 void printStatus() {
   Serial.print(F("CFG"));
+  Serial.print(F(" profile=")); Serial.print(activeProfile);
   Serial.print(F(" X.src=")); Serial.print(srcName(cfg.x.src));
   Serial.print(F(" X.inv=")); Serial.print(cfg.x.invert);
   Serial.print(F(" X.max=")); Serial.print(cfg.x.max_angle, 2);
@@ -164,9 +331,16 @@ void printStatus() {
   Serial.print(cfg.baseline_heading, 2); Serial.print(',');
   Serial.print(cfg.baseline_pitch, 2);   Serial.print(',');
   Serial.print(cfg.baseline_roll, 2);
-  Serial.print(F(" baseline_set=")); Serial.println(cfg.baseline_set);
+  Serial.print(F(" baseline_set=")); Serial.print(cfg.baseline_set);
+  Serial.print(F(" bno_cal_saved=")); Serial.println(bnoCalSaved ? 1 : 0);
 }
 
+void printProfiles() {
+  Serial.print(F("PROFILES "));
+  Serial.println(readProfileList());
+}
+
+// ---------------- SET parser ----------------
 void applyField(AxisConfig& ax, const String& field, const String& val) {
   if (field == "src") {
     int c = srcCode(val);
@@ -203,6 +377,7 @@ void handleSet(const String& args) {
   Serial.println(F("OK SET"));
 }
 
+// ---------------- command dispatch ----------------
 void handleCommand(String cmd) {
   cmd.trim();
   if (cmd.length() == 0) return;
@@ -222,31 +397,96 @@ void handleCommand(String cmd) {
     Serial.print(cfg.baseline_pitch, 2);   Serial.print(',');
     Serial.println(cfg.baseline_roll, 2);
   } else if (cmd == "SAVE") {
-    saveToNVS();
-    Serial.println(F("OK SAVED"));
+    saveProfileByName(activeProfile);
+    Serial.print(F("OK SAVED profile=")); Serial.println(activeProfile);
   } else if (cmd == "LOAD") {
-    bool ok = loadFromNVS();
-    Serial.println(ok ? F("OK LOADED") : F("OK DEFAULTS (no saved config)"));
+    bool ok = loadProfileByName(activeProfile);
+    Serial.println(ok ? F("OK LOADED") : F("OK DEFAULTS (no saved profile)"));
   } else if (cmd == "RESET") {
     loadDefaults();
     Serial.println(F("OK RESET (not saved)"));
+  } else if (cmd == "LIST_PROFILES") {
+    printProfiles();
+  } else if (cmd.startsWith("SELECT_PROFILE ")) {
+    String name = cmd.substring(15); name.trim();
+    if (!isValidProfileName(name)) {
+      Serial.println(F("ERR invalid profile name"));
+      return;
+    }
+    if (!loadProfileByName(name.c_str())) {
+      Serial.print(F("ERR profile not found: ")); Serial.println(name);
+      return;
+    }
+    name.toCharArray(activeProfile, PROFILE_NAME_MAX + 1);
+    writeActiveName(activeProfile);
+    Serial.print(F("OK SELECTED ")); Serial.println(activeProfile);
+  } else if (cmd.startsWith("SAVE_PROFILE ")) {
+    String name = cmd.substring(13); name.trim();
+    if (!isValidProfileName(name)) {
+      Serial.println(F("ERR invalid profile name"));
+      return;
+    }
+    saveProfileByName(name.c_str());
+    name.toCharArray(activeProfile, PROFILE_NAME_MAX + 1);
+    writeActiveName(activeProfile);
+    Serial.print(F("OK SAVED_PROFILE ")); Serial.println(activeProfile);
+  } else if (cmd.startsWith("DELETE_PROFILE ")) {
+    String name = cmd.substring(15); name.trim();
+    if (!isValidProfileName(name)) {
+      Serial.println(F("ERR invalid profile name"));
+      return;
+    }
+    if (name == activeProfile) {
+      Serial.println(F("ERR cannot delete active profile"));
+      return;
+    }
+    deleteProfileByName(name.c_str());
+    Serial.print(F("OK DELETED ")); Serial.println(name);
+  } else if (cmd == "SAVE_BNO_CAL") {
+    uint8_t buf[BNO055_CAL_BLOB_SIZE];
+    if (!readBNOCalRegisters(buf)) {
+      Serial.println(F("ERR could not read BNO cal"));
+      return;
+    }
+    saveBNOCalToNVS(buf);
+    bnoCalSaved = true;
+    Serial.println(F("OK SAVED_BNO_CAL"));
+  } else if (cmd == "CLEAR_BNO_CAL") {
+    clearBNOCalFromNVS();
+    bnoCalSaved = false;
+    Serial.println(F("OK CLEARED_BNO_CAL"));
   } else {
     Serial.print(F("ERR unknown: "));
     Serial.println(cmd);
   }
 }
 
+// ---------------- setup ----------------
 void setup() {
   Serial.begin(115200);
   delay(100);
 
   Wire.begin();
-  delay(800);                                      // BNO055 power-on settling
+  delay(800);                                       // BNO055 power-on settling
   BNO_Init(&myBNO);
-  bno055_set_operation_mode(OPERATION_MODE_NDOF);
-  delay(30);                                       // NDOF mode settle
 
-  loadFromNVS();                                   // populates cfg with saved or defaults
+  // If a saved BNO cal exists, write it back to the chip before going into NDOF.
+  uint8_t calBuf[BNO055_CAL_BLOB_SIZE];
+  if (loadBNOCalFromNVS(calBuf)) {
+    writeBNOCalRegisters(calBuf);                   // also leaves us in NDOF
+    bnoCalSaved = true;
+  } else {
+    bno055_set_operation_mode(OPERATION_MODE_NDOF);
+    delay(30);
+    bnoCalSaved = false;
+  }
+
+  // Active profile.
+  readActiveName(activeProfile);
+  if (!loadProfileByName(activeProfile)) {
+    loadDefaults();                                 // first-ever boot or wiped NVS
+    saveProfileByName(activeProfile);
+  }
 
   dacWrite(DAC_X, 128);
   dacWrite(DAC_Y, 128);
@@ -254,6 +494,7 @@ void setup() {
   Serial.println(F("READY imu_stick_v1"));
 }
 
+// ---------------- loop ----------------
 void loop() {
   while (Serial.available()) {
     char c = (char)Serial.read();
@@ -262,7 +503,7 @@ void loop() {
       inputLine = "";
     } else if (c != '\r') {
       inputLine += c;
-      if (inputLine.length() > 200) inputLine = "";  // guard against runaway
+      if (inputLine.length() > 200) inputLine = "";
     }
   }
 

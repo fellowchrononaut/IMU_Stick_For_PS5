@@ -1,0 +1,11 @@
+# Required.
+pyserial>=3.5
+
+# Required for the 3D pose viz panel. The app degrades gracefully if missing,
+# but the panel just shows a warning.
+numpy>=1.20
+matplotlib>=3.5
+
+# Required for the virtual gamepad output (Linux only). The app degrades
+# gracefully on other platforms or if missing.
+evdev>=1.6; sys_platform == "linux"
