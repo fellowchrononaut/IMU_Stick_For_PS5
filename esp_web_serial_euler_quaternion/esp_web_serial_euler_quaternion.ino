@@ -34,8 +34,8 @@ unsigned char gyroCalibStatus = 0;      //Variable to hold the calibration statu
 unsigned char sysCalibStatus = 0;       //Variable to hold the calibration status of the System (BNO055's MCU)
  
 unsigned long lastTime = 0;
-#define DAC_X 25
-#define DAC_Y 26
+#define DAC_X 25 //Ring 1 on TRRS
+#define DAC_Y 26 //Tip on TRRS
 float baseline_pitch = 0.0; // Baseline pitch (neutral)
 float baseline_roll = 0.0; // Baseline roll (neutral)
 float baseline_heading = 0.0; // Baseline heading (neutral)
@@ -47,23 +47,26 @@ bool is_calibrated = false;
  
 void setup() //This code is executed once
 {
+  Serial.begin(115200);
+
   //Initialize I2C communication
   Wire.begin();
- 
+
+  // BNO055 needs ~650 ms after power-on before it accepts commands
+  delay(800);
+
   //Initialization of the BNO055
   BNO_Init(&myBNO); //Assigning the structure to hold information about the device
- 
+
   //Configuration to NDoF mode
   bno055_set_operation_mode(OPERATION_MODE_NDOF);
- 
-  delay(1);
- 
-  //Initialize the Serial Port to view information on the Serial Monitor
-  Serial.begin(115200);
+
+  // NDOF mode switch settle time (datasheet: 7-19 ms)
+  delay(30);
+
   dacWrite(DAC_X, 128);
   dacWrite(DAC_Y, 128);
   Serial.println("IMU to DAC Initialized. Keep foot/sensor still for initial calibration...");
-
 }
 
 int mapAngleToDAC(float current, float base, float max_deflection, bool isHeading = false) {
@@ -104,9 +107,10 @@ void loop() //This code is looped forever
     }
 
     if (is_calibrated) {
-      // Map Roll to X-axis and Pitch to Y-axis
-      int dac_x_val = mapAngleToDAC(roll, baseline_roll, MAX_ANGLE, false);
-      int dac_y_val = mapAngleToDAC(heading, baseline_heading, MAX_ANGLE, true);
+      // Bench-verified on this mounting: foot yaw drives BNO heading (Ring 1 on TRRS), foot pitch drives BNO roll (Tip on TRRS).
+      // Stick X follows foot yaw, stick Y follows foot pitch.
+      int dac_x_val = mapAngleToDAC(heading, baseline_heading, MAX_ANGLE, true);
+      int dac_y_val = mapAngleToDAC(roll, baseline_roll, MAX_ANGLE, false);
 
       // Output to PS5 Access Controller
       dacWrite(DAC_X, dac_x_val);
@@ -156,7 +160,21 @@ void loop() //This code is looped forever
     Serial.print(F(", "));
     Serial.print(qz, 6);
     Serial.println();
- 
+
+    // Euler-from-quaternion (ZYX intrinsic: yaw, pitch, roll) in degrees, yaw normalized to 0-360
+    float sinp = 2.0f * (qw * qy - qz * qx);
+    if (sinp >  1.0f) sinp =  1.0f;
+    if (sinp < -1.0f) sinp = -1.0f;
+    float yaw_q   = atan2(2.0f * (qw * qz + qx * qy), 1.0f - 2.0f * (qy * qy + qz * qz)) * 180.0f / PI;
+    float pitch_q = asin(sinp) * 180.0f / PI;
+    float roll_q  = atan2(2.0f * (qw * qx + qy * qz), 1.0f - 2.0f * (qx * qx + qy * qy)) * 180.0f / PI;
+    if (yaw_q < 0.0f) yaw_q += 360.0f;
+
+    Serial.print(F("EulerFromQuat: "));
+    Serial.print(yaw_q, 2);   Serial.print(F(", "));
+    Serial.print(pitch_q, 2); Serial.print(F(", "));
+    Serial.println(roll_q, 2);
+
     bno055_get_accelcalib_status(&accelCalibStatus);
     bno055_get_gyrocalib_status(&gyroCalibStatus);
     bno055_get_syscalib_status(&sysCalibStatus);
