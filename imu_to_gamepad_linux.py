@@ -1,6 +1,5 @@
 import re
 import serial
-import vgamepad as vg
 import tkinter as tk
 from tkinter import ttk
 
@@ -9,16 +8,17 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+from evdev import UInput, AbsInfo, ecodes as e
+
 # ---------- CONFIG ----------
-COM_PORT = "COM10"        # <-- change this to your ESP32 COM port
+SERIAL_PORT = "/dev/ttyUSB0"
 BAUD_RATE = 115200
 MAX_ANGLE = 45.0
 SAMPLE_TIMEOUT = 0.05
 UPDATE_INTERVAL_MS = 10
-PLOT_INTERVAL_MS = 60     # 3D redraw throttle (~16 Hz)
+PLOT_INTERVAL_MS = 60   # 3D redraw throttle (~16 Hz)
 # ----------------------------
 
-# Serial format from ESP32: "Orientation: yaw, pitch, roll"
 ORIENT_RE = re.compile(
     r"Orientation:\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*,\s*([-0-9.]+)"
 )
@@ -29,7 +29,7 @@ QUAT_RE = re.compile(
     r"Quaternion:\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*,\s*([-0-9.]+)"
 )
 
-AXIS_MAX = 32767
+AXIS_MIN, AXIS_MAX = -32768, 32767
 
 # Body-frame box for 3D viz. Half-extents (X, Y, Z) — long dimension along Y so
 # the red faces (perpendicular to the X pitch axis) end up elongated.
@@ -39,6 +39,7 @@ _BOX_CORNERS = np.array([
     [-1, -1, +1], [+1, -1, +1], [+1, +1, +1], [-1, +1, +1],
 ], dtype=float) * _BOX_HALFSIZE
 
+# Each face: (corner indices in order, fill color). Bright = positive axis end.
 _BOX_FACES = [
     ([0, 3, 7, 4], "#7a2222"),  # -X
     ([1, 2, 6, 5], "#e84141"),  # +X (bright red)
@@ -100,21 +101,52 @@ def quat_to_rotmat(q):
     ])
 
 
+# ---------- virtual gamepad ----------
+def make_xbox360_uinput():
+    abs_stick = AbsInfo(value=0, min=AXIS_MIN, max=AXIS_MAX, fuzz=16, flat=128, resolution=0)
+    abs_trig = AbsInfo(value=0, min=0, max=255, fuzz=0, flat=0, resolution=0)
+    abs_hat = AbsInfo(value=0, min=-1, max=1, fuzz=0, flat=0, resolution=0)
+
+    cap = {
+        e.EV_KEY: [
+            e.BTN_A, e.BTN_B, e.BTN_X, e.BTN_Y,
+            e.BTN_TL, e.BTN_TR,
+            e.BTN_SELECT, e.BTN_START, e.BTN_MODE,
+            e.BTN_THUMBL, e.BTN_THUMBR,
+        ],
+        e.EV_ABS: [
+            (e.ABS_X, abs_stick), (e.ABS_Y, abs_stick),
+            (e.ABS_RX, abs_stick), (e.ABS_RY, abs_stick),
+            (e.ABS_Z, abs_trig), (e.ABS_RZ, abs_trig),
+            (e.ABS_HAT0X, abs_hat), (e.ABS_HAT0Y, abs_hat),
+        ],
+    }
+
+    return UInput(
+        cap,
+        name="Microsoft X-Box 360 pad",
+        vendor=0x045e, product=0x028e, version=0x110,
+    )
+
+
 def map_angle_to_axis(angle, center, max_angle=MAX_ANGLE):
     delta = angle - center
     x = max(-1.0, min(1.0, delta / max_angle))
     return int(x * AXIS_MAX)
 
 
+# ---------- app ----------
 class IMUControllerApp:
     def __init__(self, root):
         self.root = root
-        root.title("Foot IMU -> Gamepad (Windows)")
+        root.title("Foot IMU -> Gamepad (Linux/uinput)")
 
-        print(f"Opening serial port {COM_PORT} at {BAUD_RATE}...")
-        self.ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=SAMPLE_TIMEOUT)
-        self.gamepad = vg.VX360Gamepad()
-        print("Virtual Xbox 360 controller created.\n")
+        print(f"Opening serial port {SERIAL_PORT} at {BAUD_RATE}...")
+        self.ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=SAMPLE_TIMEOUT)
+
+        print("Creating virtual Xbox 360 pad via /dev/uinput...")
+        self.ui = make_xbox360_uinput()
+        print(f"  device: {self.ui.device.path}\n")
 
         # IMU state (chip frame; serial order = yaw, pitch, roll)
         self.current_yaw = None
@@ -122,6 +154,7 @@ class IMUControllerApp:
         self.current_roll = None
         self.current_quat = None         # [w, x, y, z]
 
+        # Baselines captured on "Set Neutral"
         self.baseline_yaw = None
         self.baseline_pitch = None
         self.baseline_roll = None
@@ -129,7 +162,7 @@ class IMUControllerApp:
 
         self.stick_x = 0
         self.stick_y = 0
-        self._new_data = False
+        self._new_data = False           # dirty flag for 3D redraw
         self._last_active_stick = "left"
 
         self._build_ui()
@@ -148,6 +181,7 @@ class IMUControllerApp:
         right = ttk.Frame(outer)
         right.grid(row=0, column=1, sticky="nw")
 
+        # ----- LEFT: status / labels / controls -----
         r = 0
         ttk.Label(left, text="Current IMU (deg):").grid(row=r, column=0, sticky="w"); r += 1
         self.yaw_label = ttk.Label(left, text="Yaw:   ---")
@@ -207,6 +241,7 @@ class IMUControllerApp:
         self.status_label = ttk.Label(left, text="Waiting for IMU data...")
         self.status_label.grid(row=r, column=0, sticky="w"); r += 1
 
+        # ----- RIGHT: 3D pose + 2D stick indicator -----
         ttk.Label(right, text="IMU orientation (relative to neutral):").grid(row=0, column=0, sticky="w")
         self.fig = Figure(figsize=(3.5, 3.5), dpi=90)
         self.ax3d = self.fig.add_subplot(111, projection="3d")
@@ -230,6 +265,7 @@ class IMUControllerApp:
         ax.set_xticks([]); ax.set_yticks([]); ax.set_zticks([])
         ax.view_init(elev=22, azim=-60)
         ax.disable_mouse_rotation()
+        # World-frame reference: faint gray lines, labeled +/-
         ax.plot([-0.9, 0.9], [0, 0], [0, 0], color="#888", lw=0.5)
         ax.plot([0, 0], [-0.9, 0.9], [0, 0], color="#888", lw=0.5)
         ax.plot([0, 0], [0, 0], [-0.9, 0.9], color="#888", lw=0.5)
@@ -249,13 +285,15 @@ class IMUControllerApp:
 
     # ---------- callbacks ----------
     def _on_stick_change(self):
-        # zero the previously-active stick so it doesn't stay pushed
+        # zero whichever stick we *were* driving so it doesn't stick at last value
         prev = self._last_active_stick
         if prev == "left":
-            self.gamepad.left_joystick(x_value=0, y_value=0)
+            self.ui.write(e.EV_ABS, e.ABS_X, 0)
+            self.ui.write(e.EV_ABS, e.ABS_Y, 0)
         else:
-            self.gamepad.right_joystick(x_value=0, y_value=0)
-        self.gamepad.update()
+            self.ui.write(e.EV_ABS, e.ABS_RX, 0)
+            self.ui.write(e.EV_ABS, e.ABS_RY, 0)
+        self.ui.syn()
         self._last_active_stick = self.stick_choice.get()
 
     def set_neutral(self):
@@ -275,6 +313,7 @@ class IMUControllerApp:
 
     # ---------- serial ----------
     def read_serial_lines(self):
+        # Drain all pending lines so 3D and stick stay in sync at high rates.
         while self.ser.in_waiting > 0:
             try:
                 line = self.ser.readline().decode(errors="ignore").strip()
@@ -298,14 +337,19 @@ class IMUControllerApp:
 
     # ---------- gamepad ----------
     def send_stick(self, x, y):
+        # evdev/xpad convention: positive ABS_Y = stick down. Negate so the
+        # tester / game sees "stick up" when the foot pitches up.
+        y_out = -y
         if self.stick_choice.get() == "left":
-            self.gamepad.left_joystick(x_value=x, y_value=y)
+            self.ui.write(e.EV_ABS, e.ABS_X, x)
+            self.ui.write(e.EV_ABS, e.ABS_Y, y_out)
         else:
-            self.gamepad.right_joystick(x_value=x, y_value=y)
-        self.gamepad.update()
+            self.ui.write(e.EV_ABS, e.ABS_RX, x)
+            self.ui.write(e.EV_ABS, e.ABS_RY, y_out)
+        self.ui.syn()
         self._last_active_stick = self.stick_choice.get()
 
-    # ---------- update loop ----------
+    # ---------- update loop (fast: serial + stick + 2D) ----------
     def update_loop(self):
         self.read_serial_lines()
 
@@ -352,11 +396,11 @@ class IMUControllerApp:
     def _update_stick_canvas(self):
         cx, cy, r = 100, 100, 90
         dx = (self.stick_x / AXIS_MAX) * r
-        dy = -(self.stick_y / AXIS_MAX) * r
+        dy = -(self.stick_y / AXIS_MAX) * r   # screen Y is inverted vs joystick Y
         px, py = cx + dx, cy + dy
         self.stick_canvas.coords(self._stick_dot, px - 6, py - 6, px + 6, py + 6)
 
-    # ---------- 3D redraw ----------
+    # ---------- 3D redraw (slower) ----------
     def redraw_3d(self):
         if self._new_data:
             self._new_data = False
@@ -401,9 +445,15 @@ class IMUControllerApp:
     def on_close(self):
         print("\nShutting down...")
         try:
-            self.gamepad.left_joystick(x_value=0, y_value=0)
-            self.gamepad.right_joystick(x_value=0, y_value=0)
-            self.gamepad.update()
+            self.ui.write(e.EV_ABS, e.ABS_X, 0)
+            self.ui.write(e.EV_ABS, e.ABS_Y, 0)
+            self.ui.write(e.EV_ABS, e.ABS_RX, 0)
+            self.ui.write(e.EV_ABS, e.ABS_RY, 0)
+            self.ui.syn()
+        except Exception:
+            pass
+        try:
+            self.ui.close()
         except Exception:
             pass
         try:
